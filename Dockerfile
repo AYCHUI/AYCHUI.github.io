@@ -1,22 +1,27 @@
-###
-# swagger-ui-builder - https://github.com/swagger-api/swagger-ui/
-# Container for building the swagger-ui static site
-#
-# Build: docker build -t swagger-ui-builder .
-# Run:   docker run -v $PWD/dist:/build/dist swagger-ui-builder
-#
-###
+# Looking for information on environment variables?
+# We don't declare them here — take a look at our docs.
+# https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/configuration.md
 
-FROM    ubuntu:14.04
-MAINTAINER dnephin@gmail.com
+FROM nginx:1.15-alpine
 
-ENV     DEBIAN_FRONTEND noninteractive
+RUN apk --no-cache add nodejs
 
-RUN     apt-get update && apt-get install -y git npm nodejs openjdk-7-jre
-RUN     ln -s /usr/bin/nodejs /usr/local/bin/node
+LABEL maintainer="fehguy"
 
-WORKDIR /build
-ADD     package.json    /build/package.json
-RUN     npm install
-ADD     .   /build
-CMD     ./node_modules/gulp/bin/gulp.js serve
+ENV API_KEY "**None**"
+ENV SWAGGER_JSON "/app/swagger.json"
+ENV PORT 8080
+ENV BASE_URL ""
+
+COPY ./docker/nginx.conf ./docker/cors.conf /etc/nginx/
+
+# copy swagger files to the `/js` folder
+COPY ./dist/* /usr/share/nginx/html/
+COPY ./docker/run.sh /usr/share/nginx/
+COPY ./docker/configurator /usr/share/nginx/configurator
+
+RUN chmod +x /usr/share/nginx/run.sh
+
+EXPOSE 8080
+
+CMD ["sh", "/usr/share/nginx/run.sh"]
